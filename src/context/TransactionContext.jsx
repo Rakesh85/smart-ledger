@@ -106,7 +106,7 @@ export const TransactionProvider = ({ children }) => {
     };
 
     const addTransaction = async (data) => {
-        const { subCategory, createdAt, ...rest } = data;
+        const { subCategory, createdAt, attachment, ...rest } = data;
         const { error } = await supabase
             .from('transactions')
             .insert([{ ...rest, sub_category: subCategory }]);
@@ -115,7 +115,7 @@ export const TransactionProvider = ({ children }) => {
     };
 
     const addBulkTransactions = async (items) => {
-        const mappedItems = items.map(({ subCategory, createdAt, ...rest }) => ({
+        const mappedItems = items.map(({ subCategory, createdAt, attachment, id, ...rest }) => ({
             ...rest,
             sub_category: subCategory
         }));
@@ -143,7 +143,7 @@ export const TransactionProvider = ({ children }) => {
     };
 
     const updateTransaction = async (id, updatedData) => {
-        const { subCategory, createdAt, id: _id, ...rest } = updatedData;
+        const { subCategory, createdAt, id: _id, attachment, ...rest } = updatedData;
         const { error } = await supabase
             .from('transactions')
             .update({ ...rest, sub_category: subCategory })
