@@ -1,13 +1,16 @@
 import React from 'react';
 import { TransactionProvider, useTransactions } from './context/TransactionContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
 import ChartAnalytics from './pages/ChartAnalytics';
 import CategoryManager from './pages/CategoryManager';
+import LoginPage from './pages/LoginPage';
 
 const AppContent = () => {
-  const { activeView, loading } = useTransactions();
+  const { activeView, loading: transactionsLoading } = useTransactions();
+  const { user, loading: authLoading } = useAuth();
 
-  if (loading) {
+  if (authLoading || (user && transactionsLoading)) {
     return (
       <div style={{
         display: 'flex',
@@ -41,6 +44,10 @@ const AppContent = () => {
     );
   }
 
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
     <>
       {activeView === 'dashboard' && <Dashboard />}
@@ -52,9 +59,11 @@ const AppContent = () => {
 
 function App() {
   return (
-    <TransactionProvider>
-      <AppContent />
-    </TransactionProvider>
+    <AuthProvider>
+      <TransactionProvider>
+        <AppContent />
+      </TransactionProvider>
+    </AuthProvider>
   );
 }
 

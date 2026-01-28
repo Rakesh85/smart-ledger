@@ -1,22 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTransactions } from '../context/TransactionContext';
-import { ChevronDown } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { ChevronDown, User, LogOut, Key } from 'lucide-react';
 import Button from './ui/Button';
 import LogsModal from './LogsModal';
+import ChangePasswordModal from './ChangePasswordModal';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import * as XLSX from 'xlsx';
 
 const Header = ({ onAddCategory, filter, updateFilter }) => {
     const { activeView, setActiveView, transactions, addBulkTransactions, getFilterLabel, ensureCategoriesExist } = useTransactions();
+    const { user, logout } = useAuth();
     const [logsOpen, setLogsOpen] = useState(false);
     const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const [uploadMenuOpen, setUploadMenuOpen] = useState(false);
     const [periodPickerOpen, setPeriodPickerOpen] = useState(false);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const [importing, setImporting] = useState(null); // { status: 'idle' | 'processing' | 'success', count: 0 }
 
     const exportRef = useRef(null);
     const uploadRef = useRef(null);
     const periodPickerRef = useRef(null);
+    const profileRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const handleImport = (e) => {
@@ -111,7 +117,12 @@ const Header = ({ onAddCategory, filter, updateFilter }) => {
             if (uploadRef.current && !uploadRef.current.contains(event.target)) {
                 setUploadMenuOpen(false);
             }
-            if (periodPickerRef.current && !periodPickerRef.current.contains(event.target)) setPeriodPickerOpen(false);
+            if (periodPickerRef.current && !periodPickerRef.current.contains(event.target)) {
+                setPeriodPickerOpen(false);
+            }
+            if (profileRef.current && !profileRef.current.contains(event.target)) {
+                setProfileMenuOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -362,9 +373,92 @@ const Header = ({ onAddCategory, filter, updateFilter }) => {
                         </div>
 
                         {/* Today Display */}
-                        <div style={{ textAlign: 'right', marginLeft: '0.5rem', borderLeft: '1px solid #E2E8F0', paddingLeft: '1rem' }}>
-                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1 }}>Today</span>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--color-text-main)' }}>{formattedDate}</span>
+                        <div style={{ textAlign: 'right', marginLeft: '0.5rem', borderLeft: '1px solid #E2E8F0', paddingLeft: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div>
+                                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1 }}>Today</span>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--color-text-main)' }}>{formattedDate}</span>
+                            </div>
+
+                            {/* Profile Dropdown */}
+                            <div style={{ position: 'relative' }} ref={profileRef}>
+                                <button
+                                    onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#F1F5F9',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--color-primary)',
+                                        border: '1px solid #E2E8F0',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#E2E8F0'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#F1F5F9'}
+                                >
+                                    <User size={20} />
+                                </button>
+
+                                {profileMenuOpen && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        right: 0,
+                                        backgroundColor: 'white',
+                                        boxShadow: 'var(--shadow-lg)',
+                                        borderRadius: '12px',
+                                        border: '1px solid #E2E8F0',
+                                        padding: '0.5rem',
+                                        zIndex: 1100,
+                                        minWidth: '200px',
+                                        marginTop: '0.75rem',
+                                        animation: 'fadeInDown 0.2s ease-out'
+                                    }}>
+                                        <div style={{ padding: '0.75rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.25rem' }}>
+                                            <p style={{ fontSize: '0.875rem', fontWeight: 700, margin: 0 }}>{user?.username || 'Admin'}</p>
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', margin: 0 }}>{user?.email}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => { setChangePasswordOpen(true); setProfileMenuOpen(false); }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                width: '100%',
+                                                padding: '0.65rem 0.75rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.9rem',
+                                                color: 'var(--color-text-main)',
+                                                transition: 'background 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <Key size={16} /> Change Password
+                                        </button>
+                                        <button
+                                            onClick={logout}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                width: '100%',
+                                                padding: '0.65rem 0.75rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.9rem',
+                                                color: 'var(--color-danger)',
+                                                transition: 'background 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <LogOut size={16} /> Logout
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -401,11 +495,16 @@ const Header = ({ onAddCategory, filter, updateFilter }) => {
                 onChange={handleImport}
             />
             <LogsModal isOpen={logsOpen} onClose={() => setLogsOpen(false)} />
+            <ChangePasswordModal isOpen={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
 
             <style>{`
                 @keyframes fadeInUp {
                     from { transform: translate(-50%, 20px); opacity: 0; }
                     to { transform: translate(-50%, 0); opacity: 1; }
+                }
+                @keyframes fadeInDown {
+                    from { transform: translateY(-10px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
                 }
             `}</style>
         </>
