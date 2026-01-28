@@ -113,11 +113,15 @@ export const AuthProvider = ({ children }) => {
         console.log(`[SIMULATION] Your 4-digit PIN is: ${pin}`);
 
         try {
+            // Get current time + 15 minutes for the template
+            const expiryTime = new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             await sendEmail({
                 to_email: INITIAL_CREDENTIALS.email,
                 to_name: INITIAL_CREDENTIALS.username,
                 message_type: 'PIN Verification',
-                pin: pin,
+                passcode: pin, // Matching user's template {{passcode}}
+                time: expiryTime, // Matching user's template {{time}}
                 subject: 'Security PIN for Smart Ledger'
             });
         } catch (err) {
