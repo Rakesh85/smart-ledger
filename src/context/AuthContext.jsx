@@ -93,12 +93,17 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-            await emailjs.send(serviceId, templateId, templateParams, publicKey);
-            console.log('[EMAILJS] Email sent successfully');
+            // Explicitly initialize with public key
+            emailjs.init(publicKey);
+
+            const response = await emailjs.send(serviceId, templateId, templateParams);
+            console.log('[EMAILJS] Email sent successfully:', response.status, response.text);
             return true;
         } catch (error) {
-            console.error('[EMAILJS] Failed to send email:', error);
-            throw error;
+            console.error('[EMAILJS] Detailed Error:', error);
+            // EmailJS errors often have a 'text' or 'message' property
+            const errorMsg = error.text || error.message || JSON.stringify(error);
+            throw new Error(`Email failed: ${errorMsg}`);
         }
     };
 
