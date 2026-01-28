@@ -17,9 +17,9 @@ const SECURITY_QUESTIONS = [
 
 // EmailJS Configuration from .env
 const EMAILJS_CONFIG = {
-    serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
-    templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-    publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+    serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID?.trim(),
+    templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID?.trim(),
+    publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY?.trim()
 };
 
 export const AuthProvider = ({ children }) => {
@@ -76,12 +76,19 @@ export const AuthProvider = ({ children }) => {
     const sendEmail = async (templateParams) => {
         // Only attempt to send if config is present and not default placeholder
         const { serviceId, templateId, publicKey } = EMAILJS_CONFIG;
-        const isConfigured = serviceId && serviceId !== 'your_service_id' &&
+        const isConfigured = !!(serviceId && serviceId !== 'your_service_id' &&
             templateId && templateId !== 'your_template_id' &&
-            publicKey && publicKey !== 'your_public_key';
+            publicKey && publicKey !== 'your_public_key');
 
         if (!isConfigured) {
             console.warn('[EMAILJS] Simulation Mode: Missing valid credentials in .env');
+            console.log('[DEBUG] Config Details (Masked):', {
+                hasService: !!serviceId,
+                hasTemplate: !!templateId,
+                hasKey: !!publicKey,
+                serviceStart: serviceId ? serviceId.substring(0, 4) + '...' : 'none',
+                templateStart: templateId ? templateId.substring(0, 4) + '...' : 'none'
+            });
             return false;
         }
 
@@ -157,6 +164,10 @@ export const AuthProvider = ({ children }) => {
         });
     };
 
+    const isEmailConfigured = !!(EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.serviceId !== 'your_service_id' &&
+        EMAILJS_CONFIG.templateId && EMAILJS_CONFIG.templateId !== 'your_template_id' &&
+        EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.publicKey !== 'your_public_key');
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -168,6 +179,7 @@ export const AuthProvider = ({ children }) => {
             verifyPin,
             verifySecurityQuestion,
             securityQuestions: SECURITY_QUESTIONS,
+            isEmailConfigured,
             loading
         }}>
             {children}
