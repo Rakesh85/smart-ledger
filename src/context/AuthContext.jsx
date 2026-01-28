@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import emailjs from 'emailjs-com';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,13 @@ const SECURITY_QUESTIONS = [
     { id: 2, question: 'Your native place', answer: 'lunawa' },
     { id: 3, question: 'First company name', answer: 'cp' }
 ];
+
+// EmailJS Configuration from .env
+const EMAILJS_CONFIG = {
+    serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID,
+    templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+    publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+};
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -65,25 +73,63 @@ export const AuthProvider = ({ children }) => {
         });
     };
 
-    const resetPassword = (newPassword) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                setStoredPassword(newPassword);
-                localStorage.setItem('smart_ledger_password', newPassword);
-                resolve();
-            }, 500);
-        });
+    const sendEmail = async (templateParams) => {
+        // Only attempt to send if config is present and not default placeholder
+        const { serviceId, templateId, publicKey } = EMAILJS_CONFIG;
+        const isConfigured = serviceId && serviceId !== 'your_service_id' &&
+            templateId && templateId !== 'your_template_id' &&
+            publicKey && publicKey !== 'your_public_key';
+
+        if (!isConfigured) {
+            console.warn('[EMAILJS] Simulation Mode: Missing valid credentials in .env');
+            return false;
+        }
+
+        try {
+            await emailjs.send(serviceId, templateId, templateParams, publicKey);
+            console.log('[EMAILJS] Email sent successfully');
+            return true;
+        } catch (error) {
+            console.error('[EMAILJS] Failed to send email:', error);
+            throw error;
+        }
     };
 
-    const generatePin = () => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const pin = Math.floor(1000 + Math.random() * 9000).toString();
-                setCurrentPin(pin);
-                console.log(`[SIMULATION] Your 4-digit PIN is: ${pin}`);
-                resolve(pin);
-            }, 500);
-        });
+    const generatePin = async () => {
+        const pin = Math.floor(1000 + Math.random() * 9000).toString();
+        setCurrentPin(pin);
+        console.log(`[SIMULATION] Your 4-digit PIN is: ${pin}`);
+
+        try {
+            await sendEmail({
+                to_email: INITIAL_CREDENTIALS.email,
+                to_name: INITIAL_CREDENTIALS.username,
+                message_type: 'PIN Verification',
+                pin: pin,
+                subject: 'Security PIN for Smart Ledger'
+            });
+        } catch (err) {
+            // We still resolve so the user can use simulation if real fails
+            console.warn('Real email failed, falling back to simulation UI');
+        }
+        return pin;
+    };
+
+    const resetPassword = async (newPassword) => {
+        setStoredPassword(newPassword);
+        localStorage.setItem('smart_ledger_password', newPassword);
+
+        try {
+            await sendEmail({
+                to_email: INITIAL_CREDENTIALS.email,
+                to_name: INITIAL_CREDENTIALS.username,
+                message_type: 'Password Reset Success',
+                password: newPassword,
+                subject: 'Your Password has been Reset - Smart Ledger'
+            });
+        } catch (err) {
+            console.warn('Real email failed, change was successful locally though');
+        }
     };
 
     const verifyPin = (pin) => {
